@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+    <h2>Manage Patients</h2>
+
+    <!-- Search Form -->
+    <form method="get" class="mb-3">
+        <input name="search" class="form-control" placeholder="Search by name, phone or ID"
+               value="{{ search }}">
+    </form>
+
+    <div class="card p-3 shadow-sm">
+        <table class="table table-bordered table-striped">
+            <thead class="table-primary">
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Phone</th>
+                    <th>Blacklisted</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for p in patients %}
+                <tr>
+                    <td>{{ p.id }}</td>
+                    <td>{{ p.full_name }}</td>
+                    <td>{{ p.age or 'N/A' }}</td>
+                    <td>{{ p.phone or 'N/A' }}</td>
+                    <td>
+                        {% if p.is_balcklisted %}
+                            <span class="badge bg-danger">Yes</span>
+                        {% else %}
+                            <span class="badge bg-success">No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}
