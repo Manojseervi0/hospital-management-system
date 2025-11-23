@@ -33,6 +33,7 @@
                     <th>Patient</th>
                     <th>Doctor</th>
                     <th>Status</th>
+                    <th>Action</th>   <!-- ✅ New Column -->
                 </tr>
             </thead>
             <tbody>
@@ -54,6 +55,15 @@
                         <span class="badge bg-light text-dark">{{ appt.status }}</span>
                         {% endif %}
                     </td>
+
+                    <!-- ✅ New Details Button -->
+                    <td>
+                        <a href="{{ url_for('admin_appointment_detail', appt_id=appt.id) }}"
+                           class="btn btn-sm btn-outline-primary">
+                            View
+                        </a>
+                    </td>
+
                 </tr>
                 {% endfor %}
             </tbody>

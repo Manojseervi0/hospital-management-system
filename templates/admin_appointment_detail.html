@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <a href="{{ url_for('admin_appointments') }}" class="btn btn-sm btn-outline-secondary mb-3">
+        ← Back to Appointments
+    </a>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+
+            <h3 class="mb-3">Appointment #{{ appointment.id }}</h3>
+
+            <p><strong>Date:</strong> {{ appointment.date.strftime("%d-%m-%Y") }}</p>
+            <p><strong>Time:</strong> {{ appointment.time.strftime("%I:%M %p") }}</p>
+
+            <p><strong>Status:</strong>
+                {% if appointment.status == 'Booked' %}
+                <span class="badge bg-warning text-dark">Booked</span>
+                {% elif appointment.status == 'Completed' %}
+                <span class="badge bg-success">Completed</span>
+                {% elif appointment.status == 'Cancelled' %}
+                <span class="badge bg-danger">Cancelled</span>
+                {% endif %}
+            </p>
+
+        </div>
+    </div>
+
+    <!-- Patient Info -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Patient Information</h5>
+
+            <p><strong>Name:</strong> {{ appointment.patient.full_name }}</p>
+            <p><strong>Phone:</strong> {{ appointment.patient.phone or "N/A" }}</p>
+            <p><strong>Age:</strong> {{ appointment.patient.age or "N/A" }}</p>
+            <p><strong>Gender:</strong> {{ appointment.patient.gender or "N/A" }}</p>
+        </div>
+    </div>
+
+    <!-- Doctor Info -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Doctor Information</h5>
+
+            <p><strong>Name:</strong> {{ appointment.doctor.full_name }}</p>
+            <p><strong>Specialization:</strong> {{ appointment.doctor.department.name }}</p>
+            <p><strong>Phone:</strong> {{ appointment.doctor.phone or "N/A" }}</p>
+        </div>
+    </div>
+
+    <!-- Treatment Info -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Treatment Details</h5>
+
+            {% if appointment.treatment %}
+                <p><strong>Diagnosis:</strong> {{ appointment.treatment.diagnosis or "—" }}</p>
+                <p><strong>Prescription:</strong> {{ appointment.treatment.prescription or "—" }}</p>
+                <p><strong>Notes:</strong> {{ appointment.treatment.notes or "—" }}</p>
+            {% else %}
+                <p class="text-muted">No treatment details available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

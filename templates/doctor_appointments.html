@@ -51,6 +51,7 @@
                         <td>{{ appt.date.strftime('%d-%m-%Y') }}</td>
                         <td>{{ appt.time.strftime('%I:%M %p') }}</td>
                         <td>{{ appt.patient.full_name }}</td>
+
                         <td>
                             {% if appt.status == 'Booked' %}
                             <span class="badge bg-warning text-dark">Booked</span>
@@ -58,21 +59,25 @@
                             <span class="badge bg-success">Completed</span>
                             {% elif appt.status == 'Cancelled' %}
                             <span class="badge bg-danger">Cancelled</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ appt.status }}</span>
                             {% endif %}
                         </td>
 
                         <td>
-                            <a href="{{ url_for('doctor_treatment', appointment_id=appt.id) }}"
-                                class="btn btn-sm btn-info mb-1">
-                                Treatment
-                            </a>
-
+                            <!-- Patient history is always allowed -->
                             <a href="{{ url_for('doctor_patient_history', patient_id=appt.patient.id) }}"
-                                class="btn btn-sm btn-outline-primary mb-1">
+                                class="btn btn-sm btn-outline-info mb-1">
                                 History
                             </a>
 
                             {% if appt.status == 'Booked' %}
+                            <!-- Only for Booked appointments -->
+                            <a href="{{ url_for('doctor_treatment', appointment_id=appt.id) }}"
+                                class="btn btn-sm btn-primary mb-1">
+                                Treatment
+                            </a>
+
                             <a href="{{ url_for('doctor_update_status', id=appt.id, new_status='Completed') }}"
                                 class="btn btn-sm btn-success mb-1">
                                 Mark Completed
@@ -83,15 +88,14 @@
                                 Cancel
                             </a>
                             {% else %}
+                            <!-- When status is Completed/Cancelled -->
                             <span class="text-muted">Status final</span>
                             {% endif %}
                         </td>
-
                     </tr>
-
-
                     {% endfor %}
                 </tbody>
+
             </table>
             {% else %}
             <div class="p-3 text-muted">

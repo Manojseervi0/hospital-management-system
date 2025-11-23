@@ -419,6 +419,50 @@ def create_app():
             search=search
         )
 
+    @app.route('/admin/patients/toggle/<int:patient_id>')
+    def admin_toggle_patient(patient_id):
+        if session.get('role') !="admin":
+            return redirect(url_for('login'))
+        
+        patient = Patient.query.get_or_404(patient_id)
+        user=User.query.get_or_404(patient.user_id)
+
+        user.is_active=not user.is_active
+        db.session.commit()
+
+        flash(
+            f"Patient '{patient.full_name}' has been"
+            + ("activated." if user.is_active else "deactivated.")
+        )
+        return redirect(url_for('admin_patients'))
+
+    @app.route('/admin/patient/<int:patient_id>/history')
+    def admin_patient_history(patient_id):
+        if session.get('role') !="admin":
+            return redirect(url_for('login'))
+        
+        patient=Patient.query.get_or_404(patient_id)
+
+        appointments=(
+            Appointment.query
+            .filter_by(patient_id=patient.id)
+            .order_by(Appointment.date.desc(),Appointment.time.desc())
+            .all()
+        )
+        return render_template(
+            "admin_patient_history.html",
+            patient=patient,
+            appointments=appointments,
+        )
+
+    @app.route('/admin/appointments/<int:appt_id>')
+    def admin_appointment_detail(appt_id):
+        if session.get('role') !='admin':
+            return redirect(url_for('login'))
+        
+        appt = Appointment.query.get_or_404(appt_id)
+        return render_template("Admin_appointment_detail.html",appointment=appt)
+
     @app.route('/doctor/appointments')
     def doctor_appointments():
         if session.get('role') != "doctor":
@@ -488,6 +532,33 @@ def create_app():
         flash(f"Appointment marked as {new_status}.")
         return redirect(url_for('doctor_appointments'))
     
+    @app.route('/doctor/patient/history/<int:patient_id>/history')
+    def doctor_patient_history(patient_id):
+        if session.get('role') != "doctor":
+            return redirect(url_for('login'))
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect(url_for('login'))
+        
+        doctor = Doctor.query.filter_by(user_id=user_id).first()
+        if not doctor:
+            flash("Doctor profile not found.")
+            return redirect(url_for('doctor_dashboard'))
+        
+        patient=Patient.query.get_or_404(patient_id)
+
+        appointments = (
+            Appointment.query
+            .filter_by(patient_id=patient.id,doctor_id=doctor.id)
+            .order_by(Appointment.date.desc(),Appointment.time.desc())
+            .all()
+        )
+        return render_template(
+            "doctor_patient_history.html",
+            patient=patient,
+            appointments=appointments,
+        )
+
     @app.route('/patient/doctor/<int:doctor_id>')
     def patient_doctor_profile(doctor_id):
         if session.get('role') != "patient":
@@ -511,7 +582,7 @@ def create_app():
             slots=slots
         )
     
-    @app.route('/patient/book/<int:slot_id>', methods=['GET','POST'])
+    @app.route('/patient/book/<int:slot_id>', methods=['POST'])
     def patient_book_appointment(slot_id):
         if session.get('role')!="patient":
             return redirect(url_for('login'))
@@ -527,19 +598,29 @@ def create_app():
         
         slot = DoctorAvailability.query.get_or_404(slot_id)
 
-        if slot.date < date.today():
-            flash("This slot is no longer available to book.")
-            return redirect(url_for('patient_doctor_profile',doctor_id=slot.doctorid))
+        existing_for_doctor = Appointment.query.filter(
+            Appointment.doctor_id ==slot.doctorid,
+            Appointment.date ==slot.date,
+            Appointment.time == slot.start_time,
+            Appointment.status != "Cancelled"
+        ).first()
+
+        if existing_for_doctor:
+            flash("this slot has already been booked by another patient.")
+            return redirect(url_for('patient_dashboard'))
         
-        existing = Appointment.query.filter_by(
-            patient_id=patient.id,
-            doctor_id=slot.doctorid,
-            date=slot.date,
-            time=slot.start_time
+
+        
+        existing_for_patient = Appointment.query.filter(
+            Appointment.patient_id == patient.id,
+            Appointment.doctor_id==slot.doctorid,
+            Appointment.date==slot.date,
+            Appointment.time==slot.start_time,
+            Appointment.status != "Cancelled"
             ).first()
-        if existing:
+        if existing_for_patient:
             flash("You already have an appointment in this time slot.")
-            return redirect(url_for('patient_doctor_profile',doctor_id=slot.doctorid))
+            return redirect(url_for('patient_dashboard'))
         
         appt = Appointment(
             patient_id=patient.id,
@@ -722,6 +803,17 @@ def create_app():
                 flash("End time must be after start time.")
                 return redirect(url_for('doctor_availability'))
             
+            overlapping=DoctorAvailability.query.filter(
+                DoctorAvailability.doctorid ==doctor.id,
+                DoctorAvailability.date==slot_date,
+                DoctorAvailability.start_time <end_time,
+                DoctorAvailability.end_time > start_time,
+            ).first()
+
+            if overlapping:
+                flash("This time range overlaps with an existing availability slot.")
+                return redirect(url_for('doctor_availability'))
+
             new_slot = DoctorAvailability(
                 doctorid=doctor.id,
                 date=slot_date,
