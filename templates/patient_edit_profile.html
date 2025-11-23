@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <h2 class="mb-4">Edit My Profile</h2>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <form method="post" class="row g-3">
+
+        <div class="col-md-6">
+          <label for="full_name" class="form-label">Full Name</label>
+          <input type="text"
+                 class="form-control"
+                 id="full_name"
+                 name="full_name"
+                 value="{{ patient.full_name }}"
+                 required>
+        </div>
+
+        <div class="col-md-6">
+          <label for="phone" class="form-label">Phone</label>
+          <input type="text"
+                 class="form-control"
+                 id="phone"
+                 name="phone"
+                 value="{{ patient.phone or '' }}"
+                 placeholder="Enter phone number">
+        </div>
+
+        <div class="col-md-3">
+          <label for="age" class="form-label">Age</label>
+          <input type="number"
+                 min="0"
+                 class="form-control"
+                 id="age"
+                 name="age"
+                 value="{{ patient.age or '' }}">
+        </div>
+
+        <div class="col-md-3">
+          <label for="gender" class="form-label">Gender</label>
+          <select id="gender" name="gender" class="form-select">
+            <option value="" {% if not patient.gender %}selected{% endif %}>Select</option>
+            <option value="Male" {% if patient.gender == 'Male' %}selected{% endif %}>Male</option>
+            <option value="Female" {% if patient.gender == 'Female' %}selected{% endif %}>Female</option>
+            <option value="Other" {% if patient.gender == 'Other' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+
+        <div class="col-12 d-flex justify-content-between mt-3">
+          <a href="{{ url_for('patient_dashboard') }}" class="btn btn-outline-secondary">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary">
+            Save Changes
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

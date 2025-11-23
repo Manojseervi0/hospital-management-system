@@ -1,16 +1,153 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2 class="text-center mb-4">Patient Dashboard</h2>
 
-<div class="card p-4">
-  <p>Welcome! Your appointments and doctor list will appear soon.</p>
+<div class="container mt-4">
 
-  <ul>
-    <li>View specialties</li>
-    <li>See doctor availability</li>
-    <li>Book / Cancel appointments</li>
-    <li>View past treatments & diagnosis</li>
-  </ul>
+  <h2 class="mb-4">Welcome, {{ patient.full_name }}</h2>
+
+  <!-- Patient Info Card -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3">My Profile</h5>
+
+      <p><strong>Name:</strong> {{ patient.full_name }}</p>
+      <p><strong>Phone:</strong> {{ patient.phone or "Not Provided" }}</p>
+      <p><strong>Age:</strong> {{ patient.age or "N/A" }}</p>
+      <p><strong>Gender:</strong> {{ patient.gender or "N/A" }}</p>
+
+      <a href="{{ url_for('patient_edit_profile') }}" class="btn btn-sm btn-outline-primary">
+        Edit Profile
+      </a>
+
+    </div>
+  </div>
+
+  <!-- Browse Doctors by Department -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Find Doctors by Specialization</h5>
+
+      <div class="row">
+        {% for dept in departments %}
+        <div class="col-md-4 mb-3">
+          <div class="border rounded p-3">
+            <h6>{{ dept.name }}</h6>
+            <p class="text-muted">{{ dept.description }}</p>
+
+            <a href="{{ url_for('patient_search_doctors', dept_id=dept.id) }}" class="btn btn-sm btn-primary">
+              View Doctors
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Upcoming Appointments -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+      <h5 class="card-title mb-3">Upcoming Appointments</h5>
+
+      {% if upcoming_appointments %}
+      <table class="table table-bordered">
+        <thead class="table-primary">
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Doctor</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for appt in upcoming_appointments %}
+          <tr>
+            <td>{{ appt.date.strftime("%d-%m-%Y") }}</td>
+            <td>{{ appt.time.strftime("%I:%M %p") }}</td>
+            <td>{{ appt.doctor.full_name }}</td>
+            <td>
+              <span class="badge 
+                {% if appt.status == 'Booked' %}bg-warning text-dark
+                {% elif appt.status == 'Completed' %}bg-success
+                {% elif appt.status == 'Cancelled' %}bg-danger
+                {% else %}bg-secondary{% endif %}">
+                {{ appt.status }}
+              </span>
+            </td>
+
+            <!-- UPDATED ONLY THIS <td> BLOCK -->
+            <td>
+              {% if appt.status == 'Booked' %}
+              <a href="{{ url_for('patient_reschedule_appointment', appt_id=appt.id) }}"
+                class="btn btn-sm btn-outline-primary mb-1">
+                Reschedule
+              </a>
+
+              <!-- Cancel -->
+              <!-- <a href="{{ url_for('patient_cancel_appointment', appt_id=appt.id) }}"
+                class="btn btn-sm btn-outline-danger">
+                Cancel
+              </a> -->
+              <form method="post" action="{{ url_for('patient_cancel_appointment', appt_id=appt.id) }}"
+                style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  Cancel
+                </button>
+              </form>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <!-- END UPDATED BLOCK -->
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted">No upcoming appointments.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Past Appointments -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+      <h5 class="card-title mb-3">Past Appointments</h5>
+
+      {% if past_appointments %}
+      <table class="table table-bordered">
+        <thead class="table-secondary">
+          <tr>
+            <th>Date</th>
+            <th>Doctor</th>
+            <th>Diagnosis</th>
+            <th>Prescription</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for appt in past_appointments %}
+          <tr>
+            <td>{{ appt.date.strftime("%d-%m-%Y") }}</td>
+            <td>{{ appt.doctor.full_name }}</td>
+            <td>{{ appt.treatment.diagnosis if appt.treatment else "—" }}</td>
+            <td>{{ appt.treatment.prescription if appt.treatment else "—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted">No past appointments.</p>
+      {% endif %}
+
+    </div>
+  </div>
+
 </div>
+
 {% endblock %}

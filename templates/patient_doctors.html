@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Find Doctors</h2>
+        <a href="{{ url_for('patient_dashboard') }}" class="btn btn-sm btn-outline-secondary">
+            Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+
+                <!-- Specialization / department dropdown -->
+                <div class="col-md-4">
+                    <label for="dept_id" class="form-label">Specialization</label>
+                    <select name="dept_id" id="dept_id" class="form-select">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}"
+                            {% if selected_dept_id == dept.id %}selected{% endif %}>
+                            {{ dept.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Search by doctor name -->
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search Doctor</label>
+                    <input type="text"
+                           class="form-control"
+                           id="search"
+                           name="search"
+                           placeholder="Search by name or specialization"
+                           value="{{ search or '' }}">
+                </div>
+
+                <!-- Submit button -->
+                <div class="col-md-4 d-grid">
+                    <button type="submit" class="btn btn-primary mt-2">
+                        Search
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- Doctors list -->
+    <div class="row">
+        {% if doctors %}
+            {% for doctor in doctors %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title mb-1">{{ doctor.full_name }}</h5>
+                        <p class="text-muted mb-1">
+                            {{ doctor.department.name if doctor.department else "General" }}
+                        </p>
+
+                        {% if doctor.experience_years %}
+                        <p class="mb-1">
+                            <strong>Experience:</strong> {{ doctor.experience_years }} years
+                        </p>
+                        {% endif %}
+
+                        {% if doctor.phone %}
+                        <p class="mb-1">
+                            <strong>Contact:</strong> {{ doctor.phone }}
+                        </p>
+                        {% endif %}
+
+                        {% if doctor.about %}
+                        <p class="small text-muted mb-2">
+                            {{ doctor.about }}
+                        </p>
+                        {% endif %}
+
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <span class="badge bg-success">Available</span>
+
+                            <!-- View profile + slots -->
+                            <a href="{{ url_for('patient_doctor_profile', doctor_id=doctor.id) }}"
+                               class="btn btn-sm btn-outline-primary">
+                                View Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                No doctors found for the selected filters.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
