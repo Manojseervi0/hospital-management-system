@@ -1,0 +1,233 @@
+openapi: 3.0.0
+info:
+  title: Hospital Management System API
+  version: 1.0.0
+  description: API definitions for Admin, Doctor, and Patient functionalities in the HMS project
+
+servers:
+  - url: http://localhost:5000
+
+paths:
+
+  /api/login:
+    post:
+      summary: Login user (Admin / Doctor / Patient)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid credentials
+
+  /api/patients:
+    get:
+      summary: Get list of all patients (Admin)
+      responses:
+        '200':
+          description: Returns all patient records
+
+  /api/doctors:
+    get:
+      summary: Get list of all doctors
+      parameters:
+        - in: query
+          name: dept_id
+          schema:
+            type: integer
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Filtered list of doctors
+
+  /api/appointments:
+    get:
+      summary: Get all appointments
+      parameters:
+        - in: query
+          name: doctor_id
+          schema:
+            type: integer
+        - in: query
+          name: patient_id
+          schema:
+            type: integer
+        - in: query
+          name: view
+          schema:
+            type: string
+            enum: [upcoming, past, all]
+      responses:
+        '200':
+          description: List of appointments
+
+  /api/appointment/book:
+    post:
+      summary: Book new appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                slot_id:
+                  type: integer
+      responses:
+        '200':
+          description: Appointment booked successfully
+        '400':
+          description: Invalid or unavailable slot
+
+  /api/appointment/cancel/{id}:
+    post:
+      summary: Cancel an appointment (Patient)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Appointment cancelled
+        '400':
+          description: Cannot cancel past or completed appointment
+
+  /api/appointment/reschedule/{id}:
+    post:
+      summary: Reschedule appointment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                slot_id:
+                  type: integer
+      responses:
+        '200':
+          description: Appointment rescheduled successfully
+        '400':
+          description: Slot unavailable
+
+  /api/treatment/add/{appointment_id}:
+    post:
+      summary: Add or update treatment details
+      parameters:
+        - in: path
+          name: appointment_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                diagnosis:
+                  type: string
+                prescription:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Treatment updated
+        '400':
+          description: Invalid appointment
+
+  /api/doctor/availability:
+    post:
+      summary: Add availability slot for doctor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  example: "2025-01-20"
+                start_time:
+                  type: string
+                  example: "10:00"
+                end_time:
+                  type: string
+                  example: "12:00"
+      responses:
+        '200':
+          description: Availability added
+        '400':
+          description: Invalid slot or outside allowed date range
+
+  /api/patient/history/{patient_id}:
+    get:
+      summary: Get complete medical history of a patient (Doctor/Admin)
+      parameters:
+        - in: path
+          name: patient_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Returns diagnosis & prescription history
+
+components:
+  schemas:
+
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+        time:
+          type: string
+        status:
+          type: string
+          enum: [Booked, Completed, Cancelled]
+
+    Treatment:
+      type: object
+      properties:
+        diagnosis:
+          type: string
+        prescription:
+          type: string
+        notes:
+          type: string
+
+    DoctorAvailability:
+      type: object
+      properties:
+        date:
+          type: string
+        start_time:
+          type: string
+        end_time:
+          type: string

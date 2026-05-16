@@ -1,18 +1,50 @@
-from flask import Flask , render_template,request,redirect,url_for,session,flash
-from werkzeug.security import generate_password_hash,check_password_hash
-from sqlalchemy import or_ 
-from config import Config
-from datetime import date,time,datetime,timedelta
-from models import db,User,Patient,Doctor,Appointment,Department,Treatment,DoctorAvailability
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from sqlalchemy import or_
+
+from config import Config
+
+from datetime import date, time, datetime, timedelta
+
+from models import (
+    db,
+    User,
+    Patient,
+    Doctor,
+    Appointment,
+    Department,
+    Treatment,
+    DoctorAvailability
+)
+from flask_login import (
+    LoginManager,
+    login_user,
+    logout_user,
+    login_required,
+    current_user,
+    UserMixin
+)
 def create_app():
     app=Flask(__name__)
     app.config.from_object(Config)
+        # Flask-Login Setup
+    login_manager = LoginManager()
+
+    login_manager.init_app(app)
+
+    login_manager.login_view = 'login'
+    @login_manager.user_loader
+    def load_user(user_id):
+
+        return User.query.get(int(user_id))
 
     db.init_app(app)
     with app.app_context():
         db.create_all()
         ensure_default_admin()
+        ensure_default_departments()
 
     @app.route('/')
     def home():
@@ -26,51 +58,82 @@ def create_app():
             return redirect(url_for("patient_dashboard"))
         
         return redirect(url_for("login"))
-    
-    @app.route('/register',methods=['GET','POST'])
+        
+    @app.route('/register', methods=['GET', 'POST'])
     def register_patient():
-        if request.method =='POST':
+
+        if request.method == 'POST':
+
             username = request.form['username'].strip()
             password = request.form['password']
-            full_name= request.form.get('full_name', '').strip()
-            phone=request.form.get('phone','').strip()
-            age=request.form.get('age','').strip()
-            gender=request.form.get('gender','').strip()
-            if not username or not password:
-                flash("Username and password are required.")
-                return redirect(url_for('register_patient'))
-            
-            existing = User.query.filter_by(username=username).first()
-            if existing:
-                flash("Username already taken. Please choose another.")
-                return redirect(url_for('register_patient'))
-            
+            full_name = request.form.get('full_name', '').strip()
+            phone = request.form.get('phone', '').strip()
+            age = request.form.get('age', '').strip()
+            gender = request.form.get('gender', '').strip()
 
-            hashed_pw=generate_password_hash(password)
+            # Validation
+            if len(username) < 3:
+                flash("Username must be at least 3 characters.")
+                return redirect(url_for('register_patient'))
+
+            if len(password) < 4:
+                flash("Password must be at least 4 characters.")
+                return redirect(url_for('register_patient'))
+
+            if phone:
+
+                if len(phone) != 10 or not phone.isdigit():
+                    flash("Phone number must be 10 digits.")
+                    return redirect(url_for('register_patient'))
+
+            if age:
+
+                if not age.isdigit():
+                    flash("Age must be a number.")
+                    return redirect(url_for('register_patient'))
+
+                if int(age) <= 0 or int(age) > 120:
+                    flash("Invalid age.")
+                    return redirect(url_for('register_patient'))
+
+            # Existing username check
+            existing = User.query.filter_by(username=username).first()
+
+            if existing:
+                flash("Username already taken.")
+                return redirect(url_for('register_patient'))
+
+            # Create user
+            hashed_pw = generate_password_hash(password)
+
             new_user = User(
                 username=username,
                 password=hashed_pw,
                 role="patient",
                 is_active=True
             )
+
             db.session.add(new_user)
             db.session.flush()
 
-            patient=Patient(
+            # Create patient profile
+            patient = Patient(
                 user_id=new_user.id,
                 full_name=full_name or username,
                 phone=phone or None,
-                age=int(age) if age.isdigit() else None,
+                age=int(age) if age else None,
                 gender=gender or None
             )
+
             db.session.add(patient)
             db.session.commit()
 
-
-            flash("Registration successful. Please log in.")
+            flash("Registration successful. Please login.")
             return redirect(url_for('login'))
+
         return render_template('register_patient.html')
-    
+        
+        
     @app.route('/login',methods=['GET','POST'])
     def login():
         if request.method=='POST':
@@ -86,6 +149,7 @@ def create_app():
             if not user.is_active:
                 flash("Your account is disabled.")
                 return redirect(url_for('login'))
+            login_user(user)
             session['user_id']=user.id
             session['username']=user.username
             session['role']=user.role
@@ -170,25 +234,26 @@ def create_app():
         flash("Doctor status updated.")
         return redirect(url_for('admin_doctors'))
     
-    @app.route('/create_departments')
-    def create_departments():
-        from models import Department, db
-        default_departments = [
-            ("Cardiology", "Heart -specialist"),
-            ("Neurology","Brain and nerves"),
-            ("Dermatology", "Skin specialist"),
-            ("General Medicines", "General medical care"),
-        ]
-        for name,desc in default_departments:
-            existing = Department.query.filter_by(name=name).first()
-            if not existing:
-                dept = Department(name=name,description=desc)
-                db.session.add(dept)
-        db.session.commit()
-        return "Departments created successfully!"
+    # @app.route('/create_departments')
+    # def create_departments():
+    #     from models import Department, db
+    #     default_departments = [
+    #         ("Cardiology", "Heart -specialist"),
+    #         ("Neurology","Brain and nerves"),
+    #         ("Dermatology", "Skin specialist"),
+    #         ("General Medicines", "General medical care"),
+    #     ]
+    #     for name,desc in default_departments:
+    #         existing = Department.query.filter_by(name=name).first()
+    #         if not existing:
+    #             dept = Department(name=name,description=desc)
+    #             db.session.add(dept)
+    #     db.session.commit()
+    #     return "Departments created successfully!"
     
     @app.route('/logout')
     def logout():
+        logout_user()
         session.clear()
         flash("Logout out successfully.")
         return redirect(url_for('login'))
@@ -216,7 +281,9 @@ def create_app():
         )
     
     @app.route('/admin/dashboard')
+    @login_required
     def admin_dashboard():
+        
         if session.get('role') != "admin":
             return redirect(url_for('login'))
         total_doctors=Doctor.query.count()
@@ -916,7 +983,119 @@ def create_app():
             treatment=treatment,
             patient_history=patient_history
         )
-    
+        # =========================
+    # PATIENT API - GET
+    # =========================
+
+    @app.route('/api/patients', methods=['GET'])
+    def api_get_patients():
+
+        patients = Patient.query.all()
+
+        data = []
+
+        for patient in patients:
+
+            data.append({
+
+                "id": patient.id,
+                "name": patient.full_name,
+                "phone": patient.phone,
+                "age": patient.age,
+                "gender": patient.gender
+
+            })
+
+        return jsonify(data)
+        # =========================
+    # PATIENT API - POST
+    # =========================
+
+    @app.route('/api/patients', methods=['POST'])
+    def api_add_patient():
+
+        data = request.get_json()
+
+        if not data.get('name'):
+
+            return jsonify({
+                "error": "Name is required"
+            }), 400
+
+        patient = Patient(
+
+            full_name=data.get('name'),
+            phone=data.get('phone'),
+            age=data.get('age'),
+            gender=data.get('gender')
+
+        )
+
+        db.session.add(patient)
+        db.session.commit()
+
+        return jsonify({
+
+            "message": "Patient added successfully",
+            "patient_id": patient.id
+
+        }), 201
+        # =========================
+    # PATIENT API - PUT
+    # =========================
+
+    @app.route('/api/patients/<int:id>', methods=['PUT'])
+    def api_update_patient(id):
+
+        patient = Patient.query.get_or_404(id)
+
+        data = request.get_json()
+
+        patient.full_name = data.get(
+            'name',
+            patient.full_name
+        )
+
+        patient.phone = data.get(
+            'phone',
+            patient.phone
+        )
+
+        patient.age = data.get(
+            'age',
+            patient.age
+        )
+
+        patient.gender = data.get(
+            'gender',
+            patient.gender
+        )
+
+        db.session.commit()
+
+        return jsonify({
+
+            "message": "Patient updated successfully"
+
+        })
+        # =========================
+    # PATIENT API - DELETE
+    # =========================
+
+    @app.route('/api/patients/<int:id>', methods=['DELETE'])
+    def api_delete_patient(id):
+
+        patient = Patient.query.get_or_404(id)
+
+        db.session.delete(patient)
+
+        db.session.commit()
+
+        return jsonify({
+
+            "message": "Patient deleted successfully"
+
+        })
     return app
 
 
@@ -934,7 +1113,20 @@ def ensure_default_admin():
     db.session.add(admin_user)
     db.session.commit()
     print("Created default admin -> username: admin,password: admin123")
-
+def ensure_default_departments():
+    default_departments=[
+        ("Cardiology", "Heart -specialist"),
+        ("Neurology","Brain and nerves"),
+        ("Dermatology", "Skin -specialist"),
+        ("General Medicines", "General medical care"),
+    ]
+    for name,desc in default_departments:
+        existing = Department.query.filter_by(name=name).first()
+        if not existing:
+            dept=Department(name=name,description = desc)
+            db.session.add(dept)
+    db.session.commit()
+    print("Default departments ensured.")
 app=create_app()
 
 if __name__=="__main__":

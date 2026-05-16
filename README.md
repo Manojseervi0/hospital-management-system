@@ -1,10 +1,55 @@
-# Hospital Management System – MAD 1
+# Hospital Management System
 
-This repository contains my Hospital Management System project for the Modern Application Development I (MAD-1) course.
+A Flask-based Hospital Management System with:
 
-The web application will have three roles:
-- Admin: manages doctors, patients and appointments
-- Doctor: manages appointments, availability and treatment records
-- Patient: books appointments and views medical history
+- Admin Dashboard
+- Doctor Dashboard
+- Patient Dashboard
+- Appointment Booking
+- Doctor Availability
+- Treatment Management
+- REST APIs
+- Authentication & Authorization
+- Charts & Visualization
+- Responsive Bootstrap UI
 
-Tech stack: Flask, SQLite, Jinja2 templates, HTML, CSS, Bootstrap.
+## Technologies Used
+
+- Python
+- Flask
+- SQLite
+- SQLAlchemy
+- Bootstrap 5
+- Chart.js
+- Flask-Login
+
+## Features
+
+### Admin
+- Manage doctors
+- Manage patients
+- View appointments
+- Dashboard analytics
+
+### Doctor
+- Manage availability
+- View appointments
+- Add treatments
+
+### Patient
+- Register/Login
+- Book appointments
+- Reschedule appointments
+- View history
+
+## APIs
+
+- GET /api/patients
+- POST /api/patients
+- PUT /api/patients/<id>
+- DELETE /api/patients/<id>
+
+## Run Project
+
+```bash
+python app.py
